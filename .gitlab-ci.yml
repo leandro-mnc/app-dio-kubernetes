@@ -1,0 +1,30 @@
+stages:
+  - build
+  - deploy_gcp
+
+build_images:
+  stage: build
+  image: docker:20.10.22
+
+  services:
+    - docker:20.10.22-dind
+
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+
+  before_script:
+    - docker login -u $DOCKER_USER -p $DOCKER_PASS
+
+  script:
+    - chmod a+x cicd/docker-build.sh
+    - /bin/sh cicd/docker-build.sh $APP_VERSION $DB_VERSION $DB_HOST $DB_NAME $DB_USER $DB_PASSWORD
+
+deploy_gcp:
+  stage: deploy_gcp
+
+  before_script:
+    - chmod 400 $GCP_VM_DEPLOY_SSH_KEY
+
+  script:
+    - chmod a+x cicd/deploy-gcp.sh
+    - /bin/sh cicd/deploy-gcp.sh $APP_VERSION $DB_VERSION $GCP_VM_DEPLOY_SSH_KEY $GCP_VM_DEPLOY_IP

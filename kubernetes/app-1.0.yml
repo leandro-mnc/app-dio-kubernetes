@@ -1,0 +1,39 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: app
+  namespace: default
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      containers:
+        - name: app
+          image: lteixeiramnc/app-dio-kubernetes:1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: app-port-http
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: app-service
+  namespace: default
+spec:
+  selector:
+    app: app
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: app-port-http
+      protocol: TCP
+      name: app-service

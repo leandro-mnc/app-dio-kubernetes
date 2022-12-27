@@ -1,0 +1,79 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard-rwo
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: database
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+        - name: database
+          image: lteixeiramnc/database-dio-kubernetes:1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3306
+              name: database-port
+
+          args:
+            - "--ignore-db-dir=lost+found"
+
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: volume-database
+
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: name
+
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: password
+
+      volumes:
+        - name: volume-database
+          persistentVolumeClaim:
+            claimName: pvc-database
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: database-service
+  namespace: default
+spec:
+  selector:
+    app: database
+  ports:
+    - port: 3306
+      targetPort: database-port
+      protocol: TCP
+      name: database-service
